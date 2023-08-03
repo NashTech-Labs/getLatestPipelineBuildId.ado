@@ -1,0 +1,71 @@
+parameters:
+- name: pipelineId
+  type: string
+
+- name: resultFilter
+  type: string
+
+- name: buildNumber
+  type: string
+
+- name: outputVariablePrefix
+  type: string
+
+- name: pipelineDisplayName
+  type: string
+
+- name: executeCondition
+  type: boolean
+  default: true
+  
+- name: buildIdstepName
+  type: string
+
+
+steps:
+- pwsh: |
+    try {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      $url = '$(ado.latestPipelineBuildURL)'.Replace('{pipelineId}', '${{ parameters.pipelineId }}')
+      if (-not [string]::IsNullOrWhiteSpace('${{ parameters.resultFilter }}')) {
+        $url += '&resultFilter=${{ parameters.resultFilter }}'
+      }
+      if (-not [string]::IsNullOrWhiteSpace('${{ parameters.buildNumber }}')) {
+        $url += '&buildNumber=${{ parameters.buildNumber }}'
+      }
+      echo "Url to invoke: $url"
+
+      $base64EncodedAccessToken = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $env:ADOAccessToken)))
+      $contentType = "application/json"
+      $headers = @{ 
+        Authorization = ("Basic {0}" -f $base64EncodedAccessToken)
+      }
+
+      $result = irm -Uri $url -Method Get -ContentType $contentType -Headers $headers
+      if (-not $result -or $result.count -eq 0) {
+        echo "##vso[task.logissue type=error]Could not find a suitable latest build for pipelineId: ${{ parameters.pipelineId }} from master branch."
+        echo "##vso[task.complete result=Failed;]Could not find a suitable latest build for pipelineId: ${{ parameters.pipelineId }} from master branch."
+      }
+      else {
+        $buildId = $result.value[0].id
+        $buildNumber = $result.value[0].buildNumber
+        $buildUrl =  "$(ado.pipelineRunWebURL)".Replace('{buildId}', $buildId)
+
+        echo "Build Id: $buildId"
+        echo "Build Number: $buildNumber"
+        echo "Build Url: $buildUrl"
+
+        echo "##vso[task.setvariable variable=${{ parameters.outputVariablePrefix }}.buildId;isOutput=true]$buildId"
+        echo "##vso[task.setvariable variable=${{ parameters.outputVariablePrefix }}.buildNumber;isOutput=true]$buildNumber"
+      }
+    }
+    catch {
+      throw $_
+    }
+  name: ${{ coalesce(parameters.buildIdstepName, 'GetLatestBuildIdForPipeline') }}
+  displayName: Get Latest Build Id For ${{ parameters.pipelineDisplayName }} Pipeline
+  condition: and(succeeded(), ${{ parameters.executeCondition }})
+  retryCountOnTaskFailure: 1
+  failOnStderr: true
+  env:
+    ADOAccessToken: $(AzureDevOpsRestApiBuildUserAccessToken)
