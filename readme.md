@@ -20,10 +20,9 @@ The PipelineStatus pipeline requires the following parameters to be defined:
   These parameters provide multiple use case options for the PipelineStatus framework templates pipeline, executeCondition flag is used for the utilization of different templates as per the requirements.
 
 
-## Use Cases
+## Use Case
 
-
-### 1. Publishing "pipelinestatus" as output (Output variable "BuilSummary" to be used in another dependent template)
+### Direct Use of template
 
 You can use the "output variable" of main.yml in publishPipelineStatus.yml by using two different jobs with dependency as per the requirement. for example: 
 
