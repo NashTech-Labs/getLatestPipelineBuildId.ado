@@ -24,7 +24,7 @@ The PipelineStatus pipeline requires the following parameters to be defined:
 
 ### Direct Use of template
 
-You can use the "output variable" of main.yml in publishPipelineStatus.yml by using two different jobs with dependency as per the requirement. for example: 
+You can use the "output variable" as per the requirement. for example: 
 
 ```yaml
 
