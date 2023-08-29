@@ -1,4 +1,4 @@
-# ADO.Pipelines.Templates.pipelineStatus
+# pipelineStatus
 
 ## Pipeline Requirements
 
